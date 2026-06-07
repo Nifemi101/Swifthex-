@@ -1,8 +1,3 @@
-// ============================================================
-// SwiftyEx TWA — Messenger Style Floating Navbar
-// Sliding oval indicator on icon only, no glow
-// ============================================================
-
 import { useRef, useEffect, useState } from 'react'
 import { HugeiconsIcon } from '@hugeicons/react'
 import {

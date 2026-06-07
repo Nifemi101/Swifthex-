@@ -1,4 +1,9 @@
+// ============================================================
+// SwiftyEx TWA — Messenger Style Floating Navbar
+// Sliding oval indicator on icon only, no glow
+// ============================================================
 
+import { useRef, useEffect, useState } from 'react'
 import { HugeiconsIcon } from '@hugeicons/react'
 import {
   Home01Icon,
@@ -14,7 +19,6 @@ interface NavbarProps {
   onTabChange: (tab: TabName) => void
 }
 
-// Tab configuration — icon, label, and tab name
 const tabs: { name: TabName; label: string; icon: typeof Home01Icon }[] = [
   { name: 'portfolio', label: 'Portfolio', icon: Home01Icon },
   { name: 'rates',     label: 'Rates',     icon: ChartLineData02Icon },
@@ -23,38 +27,105 @@ const tabs: { name: TabName; label: string; icon: typeof Home01Icon }[] = [
   { name: 'profile',   label: 'Profile',   icon: UserCircleIcon },
 ]
 
+const ACTIVE_COLOR   = '#8B5CF6'
+const INACTIVE_COLOR = 'rgba(255,255,255,0.85)'
+
+// Width and height of the oval pill 
+const OVAL_W = 48
+const OVAL_H = 33
+
 const Navbar = ({ activeTab, onTabChange }: NavbarProps) => {
+  const activeIndex  = tabs.findIndex(t => t.name === activeTab)
+  const buttonRefs   = useRef<(HTMLButtonElement | null)[]>([])
+  const [pillLeft, setPillLeft] = useState<number | null>(null)
+  const [pillTop,  setPillTop]  = useState<number | null>(null)
+  const containerRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    const btn       = buttonRefs.current[activeIndex]
+    const container = containerRef.current
+    if (!btn || !container) return
+
+    const btnRect  = btn.getBoundingClientRect()
+    const conRect  = container.getBoundingClientRect()
+
+    const iconCenterX = btnRect.left - conRect.left + btnRect.width  / 2
+    const iconCenterY = btnRect.top  - conRect.top  + btnRect.height * 0.35
+
+    setPillLeft(iconCenterX - OVAL_W / 2)
+    setPillTop(iconCenterY  - OVAL_H / 2)
+  }, [activeIndex])
+
   return (
     <nav
-      className="fixed bottom-0 left-0 right-0 z-50 px-2 pb-6 pt-2"
-      style={{ backgroundColor: '#0A0A0F' }}
+      className="fixed left-0 right-0 z-50 flex justify-center"
+      style={{ bottom: '16px', paddingLeft: '16px', paddingRight: '16px' }}
     >
-      <div className="flex items-center justify-around">
-        {tabs.map((tab) => {
+      <div
+        ref={containerRef}
+        className="relative flex items-center justify-between"
+        style={{
+          width: '100%',
+          maxWidth: '420px',
+          height: '72px',
+          paddingLeft: '8px',
+          paddingRight: '8px',
+          background: '#1F1F1F',
+          borderRadius: '9999px',
+          border: '1px solid rgba(255,255,255,0.05)',
+          boxShadow: '0 10px 35px rgba(0,0,0,0.45)',
+          overflow: 'hidden',
+        }}
+      >
+        {pillLeft !== null && (
+          <div
+            style={{
+              position: 'absolute',
+              top:    pillTop  ?? 0,
+              left:   pillLeft ?? 0,
+              width:  OVAL_W,
+              height: OVAL_H,
+              borderRadius: '9999px',
+              backgroundColor: 'rgba(139, 92, 246, 0.22)',
+              transition: 'left 300ms cubic-bezier(0.22, 1, 0.36, 1)',
+              pointerEvents: 'none',
+              zIndex: 0,
+            }}
+          />
+        )}
+
+        {tabs.map((tab, i) => {
           const isActive = activeTab === tab.name
 
           return (
             <button
               key={tab.name}
+              ref={el => { buttonRefs.current[i] = el }}
               onClick={() => onTabChange(tab.name)}
-              className="flex flex-col items-center gap-1 px-4 py-2 rounded-2xl transition-all duration-200"
+              className="relative z-10 flex flex-col items-center justify-center transition-all duration-300 active:scale-95"
               style={{
-                backgroundColor: isActive ? '#1E1B2E' : 'transparent',
-                minWidth: '60px',
+                flex: 1,
+                height: '100%',
+                border: 'none',
+                background: 'transparent',
+                cursor: 'pointer',
+                gap: '4px',
               }}
             >
-              {/* Icon */}
               <HugeiconsIcon
                 icon={tab.icon}
                 size={22}
-                color={isActive ? '#8B5CF6' : '#6B7280'}
-                strokeWidth={isActive ? 2 : 1.5}
+                color={isActive ? ACTIVE_COLOR : INACTIVE_COLOR}
+                strokeWidth={isActive ? 2.2 : 1.8}
               />
-
-              {/* Label */}
               <span
-                className="text-xs font-medium"
-                style={{ color: isActive ? '#8B5CF6' : '#6B7280' }}
+                style={{
+                  fontSize: '11px',
+                  fontWeight: isActive ? 700 : 500,
+                  color: isActive ? ACTIVE_COLOR : INACTIVE_COLOR,
+                  transition: 'color 0.25s ease',
+                  lineHeight: 1,
+                }}
               >
                 {tab.label}
               </span>

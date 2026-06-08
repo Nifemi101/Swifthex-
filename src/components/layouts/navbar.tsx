@@ -123,7 +123,7 @@ const Navbar = ({ activeTab, onTabChange }: NavbarProps) => {
                   color: isActive ? ACTIVE_COLOR : INACTIVE_COLOR,
                   transition: "color 0.25s ease",
                   lineHeight: 1,
-                  marginTop: "2px",
+                  marginTop: "4px",
                 }}
               >
                 {tab.label }

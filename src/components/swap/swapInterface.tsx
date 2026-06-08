@@ -1,24 +1,17 @@
 // ============================================================
 // SwiftyEx TWA — Swap Interface Page
-// Visual swap form with AI Swap Advisor powered by Groq
-// Swap execution sends command to SwiftyEx bot
+// Visual swap form with live rate calculation
 // ============================================================
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { HugeiconsIcon } from '@hugeicons/react'
-import {
-  ArrowUpDownIcon,
-  InformationCircleIcon,
-  Tick01Icon,
-  TimeQuarterPassIcon,
-} from '@hugeicons/core-free-icons'
+import { ArrowUpDownIcon } from '@hugeicons/core-free-icons'
 import useRates from '../../hooks/useRate'
-import { useSwapAdvisor } from '../../hooks/useGroqAi'
 import { SwapInterfaceSkeleton } from '../UI/skeleton'
-import type { SwapAdvisorResponse } from '../../types'
+import { formatNGN } from '../../utils/formatCurrency'
 
 // ============================================================
-// Supported tokens for swapping
+// Supported tokens
 // ============================================================
 const TOKENS = [
   { symbol: 'NGN',  label: 'Naira',    letter: '₦', color: '#16A34A' },
@@ -27,8 +20,18 @@ const TOKENS = [
   { symbol: 'ETH',  label: 'Ethereum', letter: 'Ξ', color: '#7C3AED' },
 ]
 
+// Maps token pair to the rate symbol from the API
+const RATE_MAP: Record<string, string> = {
+  'USDT-NGN': 'usdnaira',
+  'NGN-USDT': 'usdnaira',
+  'BTC-NGN':  'btcnaira',
+  'NGN-BTC':  'btcnaira',
+  'ETH-NGN':  'ethnaira',
+  'NGN-ETH':  'ethnaira',
+}
+
 // ============================================================
-// Token Icon — colored circle with currency letter
+// Token Icon
 // ============================================================
 const TokenIcon = ({ symbol, size = 36 }: { symbol: string; size?: number }) => {
   const token = TOKENS.find(t => t.symbol === symbol) || TOKENS[0]
@@ -48,66 +51,10 @@ const TokenIcon = ({ symbol, size = 36 }: { symbol: string; size?: number }) => 
 }
 
 // ============================================================
-// AI Advisor Card — shows recommendation from Groq
-// ============================================================
-const AdvisorCard = ({
-  advice,
-  loading,
-}: {
-  advice: SwapAdvisorResponse | null
-  loading: boolean
-}) => {
-  if (loading) {
-    return (
-      <div
-        className="w-full rounded-2xl p-4 flex items-center gap-3"
-        style={{ backgroundColor: '#141418' }}
-      >
-        <div
-          className="w-4 h-4 rounded-full animate-pulse flex-shrink-0"
-          style={{ backgroundColor: '#8B5CF6' }}
-        />
-        <div className="flex flex-col gap-2 flex-1">
-          <div className="animate-pulse h-3 w-24 rounded" style={{ backgroundColor: '#1E1E2A' }} />
-          <div className="animate-pulse h-3 w-full rounded" style={{ backgroundColor: '#1E1E2A' }} />
-        </div>
-      </div>
-    )
-  }
-
-  if (!advice) return null
-
-  // Color and icon per recommendation type
-  const config = {
-    good:    { color: '#16A34A', icon: Tick01Icon,           label: 'Good time to swap'  },
-    wait:    { color: '#D97706', icon: TimeQuarterPassIcon,  label: 'Consider waiting'   },
-    neutral: { color: '#6B7280', icon: InformationCircleIcon, label: 'Neutral'            },
-  }[advice.recommendation]
-
-  return (
-    <div
-      className="w-full rounded-2xl p-4"
-      style={{ backgroundColor: '#141418'}}
-    >
-      <div className="flex items-center gap-2 mb-1">
-        <HugeiconsIcon icon={config.icon} size={14} color={config.color} />
-        <span className="text-xs font-semibold" style={{ color: config.color }}>
-          AI Advisor — {config.label}
-        </span>
-      </div>
-      <p className="text-sm" style={{ color: '#9CA3AF' }}>
-        {advice.message}
-      </p>
-    </div>
-  )
-}
-
-// ============================================================
 // Swap Interface Page
 // ============================================================
 const SwapInterface = () => {
   const { rates, loading: ratesLoading } = useRates()
-  const { advice, loading: advisorLoading, getAdvice } = useSwapAdvisor()
 
   const [fromToken, setFromToken] = useState<string>('USDT')
   const [toToken, setToToken]     = useState<string>('NGN')
@@ -115,34 +62,43 @@ const SwapInterface = () => {
   const [showFromPicker, setShowFromPicker] = useState(false)
   const [showToPicker, setShowToPicker]     = useState(false)
 
-  // ── Fetch AI advice when tokens change ──────────────────
-  useEffect(() => {
-    if (rates.length > 0 && fromToken !== toToken) {
-      getAdvice(fromToken, toToken, rates)
-    }
-  }, [fromToken, toToken, rates])
-
   // ── Swap token positions ─────────────────────────────────
   const flipTokens = () => {
     setFromToken(toToken)
     setToToken(fromToken)
   }
 
-  // ── Calculate estimated output ───────────────────────────
+  // ── Calculate estimated output based on live rates ───────
   const getEstimate = (): string => {
     if (!amount || isNaN(parseFloat(amount))) return '0.00'
-    const rate = rates.find(r =>
-      r.symbol.toLowerCase().includes(fromToken.toLowerCase()) ||
-      r.symbol.toLowerCase().includes(toToken.toLowerCase())
-    )
+
+    const inputAmount = parseFloat(amount)
+    const pairKey     = `${fromToken}-${toToken}`
+    const rateSymbol  = RATE_MAP[pairKey]
+
+    if (!rateSymbol) return '—'
+
+    const rate = rates.find(r => r.symbol.toLowerCase() === rateSymbol)
     if (!rate) return '—'
-    const result = parseFloat(amount) * parseFloat(rate.sell)
-    return result.toLocaleString('en-NG', { maximumFractionDigits: 6 })
+
+    const buyRate  = parseFloat(rate.buy)
+    const sellRate = parseFloat(rate.sell)
+
+    if (toToken === 'NGN') {
+      // Selling crypto → multiply by sell rate
+      const result = inputAmount * sellRate
+      return formatNGN(result)
+    } else if (fromToken === 'NGN') {
+      // Buying crypto → divide by buy rate
+      const result = inputAmount / buyRate
+      const decimals = toToken === 'BTC' || toToken === 'ETH' ? 8 : 2
+      return `${result.toFixed(decimals)} ${toToken}`
+    }
+
+    return '—'
   }
 
-  // ── Send swap command to bot and close TWA ───────────────
-  // Sends "🔄 Swap Crypto" so the bot triggers the swap flow
-  // without the user having to tap the button manually
+  // ── Send swap command to bot ─────────────────────────────
   const handleSwap = () => {
     try {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -198,6 +154,10 @@ const SwapInterface = () => {
     </div>
   )
 
+  // Get current rate for the selected pair
+  const currentRateSymbol = RATE_MAP[`${fromToken}-${toToken}`]
+  const currentRate = rates.find(r => r.symbol.toLowerCase() === currentRateSymbol)
+
   return (
     <div className="flex flex-col px-4 pt-6 pb-4">
 
@@ -205,7 +165,7 @@ const SwapInterface = () => {
       <div className="mb-5">
         <h1 className="text-white text-xl font-bold">Swap</h1>
         <p className="text-xs mt-1" style={{ color: '#6B7280' }}>
-          Get AI advice before you swap
+          Live rates from SwiftyEx
         </p>
       </div>
 
@@ -269,7 +229,7 @@ const SwapInterface = () => {
         style={{ backgroundColor: '#141418' }}
       >
         <p className="text-xs mb-3 font-medium" style={{ color: '#6B7280' }}>
-          TO
+          TO (ESTIMATED)
         </p>
         <div className="flex items-center justify-between">
           <button
@@ -286,7 +246,11 @@ const SwapInterface = () => {
             <span style={{ color: '#6B7280', fontSize: 10 }}>▼</span>
           </button>
 
-          <span className="text-white text-lg font-bold">
+          {/* Live estimated output */}
+          <span
+            className="text-lg font-bold"
+            style={{ color: amount ? '#8B5CF6' : '#6B7280' }}
+          >
             {amount ? getEstimate() : '0.00'}
           </span>
         </div>
@@ -301,10 +265,25 @@ const SwapInterface = () => {
         )}
       </div>
 
-      {/* ── AI Advisor Card ───────────────────────────────── */}
-      <div className="mb-4">
-        <AdvisorCard advice={advice} loading={advisorLoading} />
-      </div>
+      {/* ── Current Rate Info ─────────────────────────────── */}
+      {currentRate && (
+        <div
+          className="w-full rounded-2xl p-4 mb-4 flex justify-between items-center"
+          style={{ backgroundColor: '#141418' }}
+        >
+          <span className="text-xs font-medium uppercase" style={{ color: '#6B7280' }}>
+            Rate
+          </span>
+          <div className="flex gap-4">
+            <span className="text-xs text-white">
+              Buy ₦{parseFloat(currentRate.buy).toLocaleString()}
+            </span>
+            <span className="text-xs" style={{ color: '#8B5CF6' }}>
+              Sell ₦{parseFloat(currentRate.sell).toLocaleString()}
+            </span>
+          </div>
+        </div>
+      )}
 
       {/* ── Swap Button ───────────────────────────────────── */}
       <button
@@ -321,7 +300,6 @@ const SwapInterface = () => {
           : `Swap ${fromToken} → ${toToken}`}
       </button>
 
-      {/* ── Disclaimer ────────────────────────────────────── */}
       <p className="text-center text-xs mt-3" style={{ color: '#374151' }}>
         Swap is executed via the SwiftyEx bot
       </p>

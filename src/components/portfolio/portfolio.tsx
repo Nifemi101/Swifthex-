@@ -87,6 +87,22 @@ const Portfolio = () => {
   // Toggle to show or hide balance amounts
   const [balanceVisible, setBalanceVisible] = useState<boolean>(true)
 
+  // ── Open bot with a specific action ───────────────────────
+  // Deposit and Withdraw redirect to the SwiftyEx bot
+  const openBot = (action: string) => {
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const tg = (window as any).Telegram?.WebApp
+      if (tg) {
+        tg.openTelegramLink(`https://t.me/SwiftyEx_bot?start=${action}`)
+      } else {
+        window.open('https://t.me/SwiftyEx_bot', '_blank')
+      }
+    } catch {
+      window.open('https://t.me/SwiftyEx_bot', '_blank')
+    }
+  }
+
   // ── Total balance calculation ──────────────────────────────
   // Converts all wallet balances to NGN equivalent using live rates
   const calculateTotalNGN = (): number => {
@@ -209,6 +225,7 @@ const Portfolio = () => {
       {/* ── Quick Actions ────────────────────────────────── */}
       <div className="flex gap-3 mt-2">
         <button
+          onClick={() => openBot('deposit')}
           className="flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl font-medium text-sm transition-all active:scale-95"
           style={{ backgroundColor: '#8B5CF6', color: '#FFFFFF' }}
         >
@@ -217,6 +234,7 @@ const Portfolio = () => {
         </button>
 
         <button
+          onClick={() => openBot('withdraw')}
           className="flex-1 flex items-center justify-center gap-2 py-3 rounded-2xl font-medium text-sm transition-all active:scale-95"
           style={{ backgroundColor: '#141418', color: '#FFFFFF' }}
         >

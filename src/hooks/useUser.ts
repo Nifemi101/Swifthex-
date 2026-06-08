@@ -1,7 +1,6 @@
 // ============================================================
 // SwiftyEx TWA — useUser Hook
-// Fetches user profile from /miniapp/me
-// Falls back to Telegram SDK for real name when API fails
+// Fetches user profile — prioritizes Telegram SDK for name
 // ============================================================
 
 import { useState, useEffect } from 'react'
@@ -16,6 +15,32 @@ interface UseUserReturn {
   error: string | null
 }
 
+// ── Read real Telegram user from SDK ────────────────────────
+// Tries multiple methods to get the real user
+const getTelegramUser = () => {
+  // Method 1 — @twa-dev/sdk
+  const sdkUser = WebApp.initDataUnsafe?.user
+  if (sdkUser?.id) {
+    console.log('Got user from SDK:', sdkUser)
+    return sdkUser
+  }
+
+  // Method 2 — window.Telegram.WebApp directly
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const windowUser = (window as any).Telegram?.WebApp?.initDataUnsafe?.user
+    if (windowUser?.id) {
+      console.log('Got user from window:', windowUser)
+      return windowUser
+    }
+  } catch {
+    // not inside Telegram
+  }
+
+  console.log('No Telegram user found — using mock data')
+  return null
+}
+
 const useUser = (): UseUserReturn => {
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState<boolean>(true)
@@ -23,33 +48,31 @@ const useUser = (): UseUserReturn => {
 
   useEffect(() => {
     const loadUser = async () => {
+      setLoading(true)
+
+      // Always read Telegram user first — synchronous and reliable
+      const tgUser = getTelegramUser()
+
       try {
-        setLoading(true)
-
-        // First try the real API
+        // Try the real API
         const data = await fetchUser()
-        setUser(data)
 
-      } catch (err) {
-        console.warn('useUser: API unavailable, checking Telegram SDK', err)
-
-        try {
-          // Get real user data directly from Telegram SDK
-          const tgUser = WebApp.initDataUnsafe?.user
-
-          if (tgUser) {
-            // Inside Telegram — use real name, fallback mock for balances
-            setUser({
-              ...mockUser,
-              chat_id:    String(tgUser.id),
-              username:   tgUser.username   || '',
-              first_name: tgUser.first_name || 'Swiftronaut',
-            })
-          } else {
-            // Outside Telegram — use full mock data
-            setUser(mockUser)
-          }
-        } catch {
+        // Merge API data with real Telegram name if available
+        setUser({
+          ...data,
+          first_name: tgUser?.first_name || data.first_name,
+          username:   tgUser?.username   || data.username,
+        })
+      } catch {
+        // API failed — use Telegram SDK data + mock for balances
+        if (tgUser) {
+          setUser({
+            ...mockUser,
+            chat_id:    String(tgUser.id),
+            username:   tgUser.username   || '',
+            first_name: tgUser.first_name || 'Swiftronaut',
+          })
+        } else {
           setUser(mockUser)
         }
       } finally {

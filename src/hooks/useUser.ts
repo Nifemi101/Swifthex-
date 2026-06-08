@@ -1,4 +1,11 @@
+// ============================================================
+// SwiftyEx TWA — useUser Hook
+// Fetches user profile from /miniapp/me
+// Falls back to Telegram SDK for real name when API fails
+// ============================================================
+
 import { useState, useEffect } from 'react'
+import WebApp from '@twa-dev/sdk'
 import { fetchUser } from '../service/api'
 import { mockUser } from '../data/mockData'
 import type { User } from '../types'
@@ -12,7 +19,7 @@ interface UseUserReturn {
 const useUser = (): UseUserReturn => {
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState<boolean>(true)
-const [error] = useState<string | null>(null)
+  const [error] = useState<string | null>(null)
 
   useEffect(() => {
     const loadUser = async () => {
@@ -26,21 +33,20 @@ const [error] = useState<string | null>(null)
       } catch (err) {
         console.warn('useUser: API unavailable, checking Telegram SDK', err)
 
-        // API failed — try to get real name from Telegram SDK directly
         try {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const tgUser = (window as any).Telegram?.WebApp?.initDataUnsafe?.user
+          // Get real user data directly from Telegram SDK
+          const tgUser = WebApp.initDataUnsafe?.user
 
           if (tgUser) {
-            // Real Telegram user data — merge with mock for balance fields
+            // Inside Telegram — use real name, fallback mock for balances
             setUser({
               ...mockUser,
-              chat_id: String(tgUser.id),
-              username: tgUser.username || '',
-              first_name: tgUser.first_name || '',
+              chat_id:    String(tgUser.id),
+              username:   tgUser.username   || '',
+              first_name: tgUser.first_name || 'Swiftronaut',
             })
           } else {
-            // Not inside Telegram — use full mock data
+            // Outside Telegram — use full mock data
             setUser(mockUser)
           }
         } catch {

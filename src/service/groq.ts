@@ -1,28 +1,41 @@
 // ============================================================
 // SwiftyEx TWA — Groq AI Service
-// Calls go through /api/groq (Vercel proxy) to avoid CORS
+// Calls Groq API directly from the browser
+// Groq supports CORS so no proxy needed
 // ============================================================
 
 import axios from 'axios'
 import type { Rate, SwapAdvisorResponse } from '../types'
 
-const GROQ_MODEL = 'llama3-8b-8192'
+const GROQ_API_URL = 'https://api.groq.com/openai/v1/chat/completions'
+const GROQ_MODEL   = 'llama3-8b-8192'
+const GROQ_API_KEY = import.meta.env.VITE_GROQ_API_KEY
 
 // ============================================================
-// Helper — sends request through Vercel proxy to Groq
+// Helper — sends a message directly to Groq API
 // ============================================================
 const askGroq = async (
   systemPrompt: string,
   userMessage: string
 ): Promise<string> => {
-  const response = await axios.post('/api/groq', {
-    model: GROQ_MODEL,
-    max_tokens: 300,
-    messages: [
-      { role: 'system', content: systemPrompt },
-      { role: 'user',   content: userMessage  },
-    ],
-  })
+  const response = await axios.post(
+    GROQ_API_URL,
+    {
+      model: GROQ_MODEL,
+      max_tokens: 300,
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user',   content: userMessage  },
+      ],
+    },
+    {
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${GROQ_API_KEY}`,
+      },
+      timeout: 15000,
+    }
+  )
 
   const content = response.data.choices?.[0]?.message?.content
   if (!content) throw new Error('Empty response from Groq')
@@ -31,7 +44,6 @@ const askGroq = async (
 
 // ============================================================
 // Helper — strips markdown code blocks from Groq responses
-// Groq sometimes wraps JSON in ```json ... ``` blocks
 // ============================================================
 const cleanJSON = (raw: string): string => {
   return raw
@@ -42,7 +54,6 @@ const cleanJSON = (raw: string): string => {
 
 // ============================================================
 // Feature 1 — Swap Advisor
-// Analyzes live rates and recommends whether to swap now
 // ============================================================
 export const getSwapAdvice = async (
   fromAsset: string,
@@ -55,7 +66,6 @@ export const getSwapAdvice = async (
 
   const systemPrompt = `
     You are a concise crypto swap advisor for SwiftyEx, a Nigerian crypto exchange.
-    Given the current market rates, tell the user if it is a good or bad time to swap.
     You MUST respond ONLY with a valid JSON object — no explanation, no markdown, no code blocks.
     The JSON must have exactly two fields:
     - "recommendation": one of "good", "wait", or "neutral"
@@ -64,8 +74,7 @@ export const getSwapAdvice = async (
   `
 
   const userMessage = `
-    Current rates:
-    ${rateSummary}
+    Current rates: ${rateSummary}
     The user wants to swap ${fromAsset} to ${toAsset}. Should they swap now?
   `
 
@@ -75,7 +84,7 @@ export const getSwapAdvice = async (
     const parsed = JSON.parse(clean) as SwapAdvisorResponse
 
     if (!parsed.recommendation || !parsed.message) {
-      throw new Error('Invalid response shape from Groq')
+      throw new Error('Invalid response shape')
     }
 
     return parsed
@@ -90,7 +99,6 @@ export const getSwapAdvice = async (
 
 // ============================================================
 // Feature 2 — Support Chat
-// Answers user questions about SwiftyEx features
 // ============================================================
 export const getSupportReply = async (
   userMessage: string,
@@ -106,15 +114,25 @@ export const getSupportReply = async (
   `
 
   try {
-    const response = await axios.post('/api/groq', {
-      model: GROQ_MODEL,
-      max_tokens: 200,
-      messages: [
-        { role: 'system', content: systemPrompt },
-        ...chatHistory,
-        { role: 'user', content: userMessage },
-      ],
-    })
+    const response = await axios.post(
+      GROQ_API_URL,
+      {
+        model: GROQ_MODEL,
+        max_tokens: 200,
+        messages: [
+          { role: 'system', content: systemPrompt },
+          ...chatHistory,
+          { role: 'user', content: userMessage },
+        ],
+      },
+      {
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${GROQ_API_KEY}`,
+        },
+        timeout: 15000,
+      }
+    )
 
     const content = response.data.choices?.[0]?.message?.content
     if (!content) throw new Error('Empty response from Groq')

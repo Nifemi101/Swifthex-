@@ -5,15 +5,8 @@ import MarketRates from "./components/rates/marketRate";
 import SwapInterface from "./components/swap/swapInterface";
 import TransactionHistory from './components/transactions/transactionHistory'
 import Profile from './components/profile/profile'
+import Portfolio from './components/portfolio/portfolio'
 
-// ============================================================
-// Placeholder components — replace each one as we build them
-// ============================================================
-const Portfolio = () => (
-  <div className="flex items-center justify-center h-full">
-    <p style={{ color: "#9CA3AF" }}>Portfolio coming soon...</p>
-  </div>
-);
 
 const renderPage = (tab: TabName) => {
   switch (tab) {

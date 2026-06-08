@@ -4,6 +4,7 @@
 // Auto refreshes every 30 seconds
 // ============================================================
 
+import { useState } from 'react'
 import { HugeiconsIcon } from '@hugeicons/react'
 import { RefreshIcon } from '@hugeicons/core-free-icons'
 import useRates from '../../hooks/useRate'
@@ -117,6 +118,16 @@ const RateCard = ({
 const MarketRates = () => {
   const { rates, loading, lastUpdated, refetch } = useRates()
 
+  // Controls the spinning animation on the refresh button
+  const [spinning, setSpinning] = useState(false)
+
+  // Trigger refetch and spin the icon for 1 second
+  const handleRefetch = () => {
+    setSpinning(true)
+    refetch()
+    setTimeout(() => setSpinning(false), 1000)
+  }
+
   return (
     <div className="flex flex-col px-4 pt-6 pb-4">
 
@@ -131,18 +142,25 @@ const MarketRates = () => {
           </p>
         </div>
 
-        {/* Manual refresh button */}
+        {/* Manual refresh button with spin animation */}
         <button
-          onClick={refetch}
+          onClick={handleRefetch}
           className="w-9 h-9 rounded-full flex items-center justify-center transition-all active:scale-90"
           style={{ backgroundColor: '#141418' }}
         >
-          <HugeiconsIcon
-            icon={RefreshIcon}
-            size={18}
-            color="#8B5CF6"
-            strokeWidth={1.5}
-          />
+          <div
+            style={{
+              transition: 'transform 1s ease',
+              transform: spinning ? 'rotate(360deg)' : 'rotate(0deg)',
+            }}
+          >
+            <HugeiconsIcon
+              icon={RefreshIcon}
+              size={18}
+              color="#8B5CF6"
+              strokeWidth={1.5}
+            />
+          </div>
         </button>
       </div>
 
@@ -167,7 +185,7 @@ const MarketRates = () => {
             No rates available
           </p>
           <button
-            onClick={refetch}
+            onClick={handleRefetch}
             className="mt-4 px-6 py-2 rounded-full text-sm font-medium"
             style={{ backgroundColor: '#8B5CF6', color: '#FFFFFF' }}
           >

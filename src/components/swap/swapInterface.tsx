@@ -1,7 +1,7 @@
 // ============================================================
 // SwiftyEx TWA — Swap Interface Page
 // Visual swap form with AI Swap Advisor powered by Groq
-// Swap execution redirects to the bot (no swap API endpoint)
+// Swap execution sends command to SwiftyEx bot
 // ============================================================
 
 import { useState, useEffect } from 'react'
@@ -79,15 +79,15 @@ const AdvisorCard = ({
 
   // Color and icon per recommendation type
   const config = {
-    good:    { color: '#16A34A', icon: Tick01Icon,        label: 'Good time to swap' },
-    wait:    { color: '#D97706', icon: TimeQuarterPassIcon, label: 'Consider waiting' },
-    neutral: { color: '#6B7280', icon: InformationCircleIcon, label: 'Neutral' },
+    good:    { color: '#16A34A', icon: Tick01Icon,           label: 'Good time to swap'  },
+    wait:    { color: '#D97706', icon: TimeQuarterPassIcon,  label: 'Consider waiting'   },
+    neutral: { color: '#6B7280', icon: InformationCircleIcon, label: 'Neutral'            },
   }[advice.recommendation]
 
   return (
     <div
       className="w-full rounded-2xl p-4"
-      style={{ backgroundColor: '#141418' }}
+      style={{ backgroundColor: '#141418'}}
     >
       <div className="flex items-center gap-2 mb-1">
         <HugeiconsIcon icon={config.icon} size={14} color={config.color} />
@@ -140,18 +140,20 @@ const SwapInterface = () => {
     return result.toLocaleString('en-NG', { maximumFractionDigits: 6 })
   }
 
-  // ── Open bot to execute swap ─────────────────────────────
+  // ── Send swap command to bot and close TWA ───────────────
+  // Sends "🔄 Swap Crypto" so the bot triggers the swap flow
+  // without the user having to tap the button manually
   const handleSwap = () => {
     try {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const tg = (window as any).Telegram?.WebApp
       if (tg) {
-        tg.openTelegramLink('https://t.me/SwiftyExBot')
+        tg.sendData('🔄 Swap Crypto')
       } else {
-        window.open('https://t.me/SwiftyExBot', '_blank')
+        window.open('https://t.me/SwiftyEx_bot', '_blank')
       }
     } catch {
-      window.open('https://t.me/SwiftyExBot', '_blank')
+      window.open('https://t.me/SwiftyEx_bot', '_blank')
     }
   }
 
@@ -216,7 +218,6 @@ const SwapInterface = () => {
           FROM
         </p>
         <div className="flex items-center justify-between">
-          {/* Token selector */}
           <button
             onClick={() => { setShowFromPicker(p => !p); setShowToPicker(false) }}
             className="flex items-center gap-2"
@@ -231,7 +232,6 @@ const SwapInterface = () => {
             <span style={{ color: '#6B7280', fontSize: 10 }}>▼</span>
           </button>
 
-          {/* Amount input */}
           <input
             type="number"
             placeholder="0.00"
@@ -242,7 +242,6 @@ const SwapInterface = () => {
           />
         </div>
 
-        {/* Dropdown picker */}
         {showFromPicker && (
           <TokenPicker
             selected={fromToken}
@@ -273,7 +272,6 @@ const SwapInterface = () => {
           TO
         </p>
         <div className="flex items-center justify-between">
-          {/* Token selector */}
           <button
             onClick={() => { setShowToPicker(p => !p); setShowFromPicker(false) }}
             className="flex items-center gap-2"
@@ -288,7 +286,6 @@ const SwapInterface = () => {
             <span style={{ color: '#6B7280', fontSize: 10 }}>▼</span>
           </button>
 
-          {/* Estimated output */}
           <span className="text-white text-lg font-bold">
             {amount ? getEstimate() : '0.00'}
           </span>
@@ -313,10 +310,9 @@ const SwapInterface = () => {
       <button
         onClick={handleSwap}
         disabled={!amount || fromToken === toToken}
-        className="w-full py-4 rounded-2xl font-bold text-white text-sm transition-all active:scale-95"
+        className="w-full py-4 rounded-2xl font-bold text-sm transition-all active:scale-95"
         style={{
-          backgroundColor:
-            !amount || fromToken === toToken ? '#1E1E2A' : '#8B5CF6',
+          backgroundColor: !amount || fromToken === toToken ? '#1E1E2A' : '#8B5CF6',
           color: !amount || fromToken === toToken ? '#6B7280' : '#FFFFFF',
         }}
       >

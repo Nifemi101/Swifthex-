@@ -3,7 +3,7 @@
 // Shows user info, KYC status, referral code and support
 // ============================================================
 
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { HugeiconsIcon } from '@hugeicons/react'
 import type { IconSvgElement } from '@hugeicons/react'
 import {
@@ -27,6 +27,13 @@ const SupportChat = ({ onClose }: { onClose: () => void }) => {
   const { messages, loading, sendMessage } = useSupportChat()
   const [input, setInput] = useState('')
 
+  // Auto scroll to latest message when new reply arrives
+  const bottomRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }, [messages])
+
   const handleSend = async () => {
     if (!input.trim()) return
     const msg = input
@@ -35,11 +42,12 @@ const SupportChat = ({ onClose }: { onClose: () => void }) => {
   }
 
   return (
+    // zIndex 9999 ensures chat sits above the navbar
     <div
-      className="fixed inset-0 z-50 flex flex-col"
-      style={{ backgroundColor: '#0A0A0F' }}
+      className="fixed inset-0 flex flex-col"
+      style={{ backgroundColor: '#0A0A0F', zIndex: 9999 }}
     >
-      {/* Chat header */}
+      {/* ── Chat header ──────────────────────────────────── */}
       <div
         className="flex items-center justify-between px-4 py-4"
         style={{ borderBottom: '1px solid #1A1A24' }}
@@ -65,7 +73,7 @@ const SupportChat = ({ onClose }: { onClose: () => void }) => {
         </button>
       </div>
 
-      {/* Messages */}
+      {/* ── Messages ─────────────────────────────────────── */}
       <div className="flex-1 overflow-y-auto px-4 py-4 flex flex-col gap-3">
         {messages.map((msg, i) => (
           <div
@@ -86,7 +94,7 @@ const SupportChat = ({ onClose }: { onClose: () => void }) => {
           </div>
         ))}
 
-        {/* Typing indicator */}
+        {/* Typing indicator — shows while AI is responding */}
         {loading && (
           <div className="flex justify-start">
             <div
@@ -106,9 +114,12 @@ const SupportChat = ({ onClose }: { onClose: () => void }) => {
             </div>
           </div>
         )}
+
+        {/* Invisible anchor — scrolled into view on new messages */}
+        <div ref={bottomRef} />
       </div>
 
-      {/* Input */}
+      {/* ── Input ────────────────────────────────────────── */}
       <div
         className="px-4 py-3 flex gap-2"
         style={{ borderTop: '1px solid #1A1A24' }}
@@ -181,7 +192,7 @@ const MenuItem = ({
 // ============================================================
 const Profile = () => {
   const { user, loading } = useUser()
-  const [copied, setCopied]         = useState(false)
+  const [copied, setCopied]           = useState(false)
   const [showSupport, setShowSupport] = useState(false)
 
   // ── Copy referral code to clipboard ─────────────────────
@@ -281,7 +292,7 @@ const Profile = () => {
               {user?.referral_code || '—'}
             </span>
 
-            {/* Copy button */}
+            {/* Copy button — shows checkmark after copy */}
             <button
               onClick={copyReferral}
               className="flex items-center gap-1.5 transition-all active:scale-90"

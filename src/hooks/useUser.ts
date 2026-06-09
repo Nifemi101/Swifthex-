@@ -16,29 +16,29 @@ interface UseUserReturn {
 }
 
 // ── Read real Telegram user from SDK ────────────────────────
-// Tries multiple methods to get the real user
 const getTelegramUser = () => {
-  // Method 1 — @twa-dev/sdk
   const sdkUser = WebApp.initDataUnsafe?.user
-  if (sdkUser?.id) {
-    console.log('Got user from SDK:', sdkUser)
-    return sdkUser
-  }
+  if (sdkUser?.id) return sdkUser
 
-  // Method 2 — window.Telegram.WebApp directly
   try {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const windowUser = (window as any).Telegram?.WebApp?.initDataUnsafe?.user
-    if (windowUser?.id) {
-      console.log('Got user from window:', windowUser)
-      return windowUser
-    }
+    const win = window as any
+    const windowUser = win.__TG_USER__ || win.Telegram?.WebApp?.initDataUnsafe?.user
+    if (windowUser?.id) return windowUser
   } catch {
     // not inside Telegram
   }
 
-  console.log('No Telegram user found — using mock data')
   return null
+}
+
+// ── Generate referral code from name + Telegram ID ──────────
+// Format: SWIFT-[first 3 letters of name][last 3 digits of ID]
+// e.g. Nifemi with ID 123456789 → SWIFT-NIF789
+const generateReferralCode = (firstName: string, userId: number): string => {
+  const prefix = firstName.slice(0, 3).toUpperCase().padEnd(3, 'X')
+  const suffix = String(userId).slice(-3).padStart(3, '0')
+  return `SWIFT-${prefix}${suffix}`
 }
 
 const useUser = (): UseUserReturn => {
@@ -50,27 +50,31 @@ const useUser = (): UseUserReturn => {
     const loadUser = async () => {
       setLoading(true)
 
-      // Always read Telegram user first — synchronous and reliable
+      // Always read Telegram user first — synchronous
       const tgUser = getTelegramUser()
 
       try {
         // Try the real API
         const data = await fetchUser()
 
-        // Merge API data with real Telegram name if available
         setUser({
           ...data,
           first_name: tgUser?.first_name || data.first_name,
           username:   tgUser?.username   || data.username,
         })
       } catch {
-        // API failed — use Telegram SDK data + mock for balances
+        // API failed — build user from Telegram SDK + mock
         if (tgUser) {
           setUser({
             ...mockUser,
-            chat_id:    String(tgUser.id),
-            username:   tgUser.username   || '',
-            first_name: tgUser.first_name || 'Swiftronaut',
+            chat_id:       String(tgUser.id),
+            username:      tgUser.username   || '',
+            first_name:    tgUser.first_name || 'Swiftronaut',
+            // Generate referral code from real name + Telegram ID
+            referral_code: generateReferralCode(
+              tgUser.first_name || 'USR',
+              tgUser.id
+            ),
           })
         } else {
           setUser(mockUser)

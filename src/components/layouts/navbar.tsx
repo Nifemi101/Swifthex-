@@ -37,18 +37,36 @@ const Navbar = ({ activeTab, onTabChange }: NavbarProps) => {
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const btn = buttonRefs.current[activeIndex];
+    const recalc = () => {
+      const btn = buttonRefs.current[activeIndex];
+      const container = containerRef.current;
+      if (!btn || !container) return;
+
+      const btnRect = btn.getBoundingClientRect();
+      const conRect = container.getBoundingClientRect();
+
+      const iconCenterX = btnRect.left - conRect.left + btnRect.width / 2;
+      const iconCenterY = btnRect.top - conRect.top + btnRect.height * 0.35;
+
+      setPillLeft(iconCenterX - OVAL_W / 2);
+      setPillTop(iconCenterY - OVAL_H / 2);
+    };
+
+    // Recalculate after layout has painted so measurements are accurate.
+    const raf = requestAnimationFrame(recalc);
+
+    // Keep the pill aligned when the container resizes (e.g. desktop widths,
+    // breakpoint changes, or window resize).
     const container = containerRef.current;
-    if (!btn || !container) return;
+    const ro = new ResizeObserver(recalc);
+    if (container) ro.observe(container);
+    window.addEventListener("resize", recalc);
 
-    const btnRect = btn.getBoundingClientRect();
-    const conRect = container.getBoundingClientRect();
-
-    const iconCenterX = btnRect.left - conRect.left + btnRect.width / 2;
-    const iconCenterY = btnRect.top - conRect.top + btnRect.height * 0.35;
-
-    setPillLeft(iconCenterX - OVAL_W / 2);
-    setPillTop(iconCenterY - OVAL_H / 2);
+    return () => {
+      cancelAnimationFrame(raf);
+      ro.disconnect();
+      window.removeEventListener("resize", recalc);
+    };
   }, [activeIndex]);
 
   return (

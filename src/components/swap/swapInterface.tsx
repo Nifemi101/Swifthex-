@@ -161,7 +161,7 @@ const SwapInterface = () => {
   )
 
   if (ratesLoading) return (
-    <div className="px-4 pt-6">
+    <div className="w-full mx-auto max-w-md md:max-w-xl lg:max-w-2xl px-4 md:px-6 pt-6 md:pt-8">
       <SwapInterfaceSkeleton />
     </div>
   )
@@ -170,11 +170,11 @@ const SwapInterface = () => {
   const usdNairaRate = rates.find(r => r.symbol.toLowerCase() === 'usdnaira')
 
   return (
-    <div className="flex flex-col px-4 pt-6 pb-4">
+    <div className="flex flex-col w-full mx-auto max-w-md md:max-w-xl lg:max-w-2xl px-4 md:px-6 pt-6 md:pt-8 pb-4">
 
       {/* ── Header ───────────────────────────────────────── */}
       <div className="mb-5">
-        <h1 className="text-white text-xl font-bold">Swap</h1>
+        <h1 className="text-white text-xl md:text-2xl font-bold">Swap</h1>
         <p className="text-xs mt-1" style={{ color: '#6B7280' }}>
           Live rates from SwiftyEx
         </p>

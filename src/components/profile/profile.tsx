@@ -100,14 +100,14 @@ const Profile = () => {
 
   if (loading) {
     return (
-      <div className="px-4 pt-6">
+      <div className="w-full mx-auto max-w-md md:max-w-xl lg:max-w-2xl px-4 md:px-6 pt-6 md:pt-8">
         <ProfileSkeleton />
       </div>
     )
   }
 
   return (
-    <div className="flex flex-col px-4 pt-6 pb-4">
+    <div className="flex flex-col w-full mx-auto max-w-md md:max-w-xl lg:max-w-2xl px-4 md:px-6 pt-6 md:pt-8 pb-4">
 
       {/* ── User Card ──────────────────────────────────── */}
       <div

@@ -117,12 +117,12 @@ const TransactionHistory = () => {
   } = useTransactions()
 
   return (
-    <div className="flex flex-col px-4 pt-6 pb-4">
+    <div className="flex flex-col w-full mx-auto max-w-md md:max-w-xl lg:max-w-2xl px-4 md:px-6 pt-6 md:pt-8 pb-4">
 
       {/* ── Header ───────────────────────────────────────── */}
       <div className="flex items-center justify-between mb-4">
         <div>
-          <h1 className="text-white text-xl font-bold">History</h1>
+          <h1 className="text-white text-xl md:text-2xl font-bold">History</h1>
           <p className="text-xs mt-1" style={{ color: '#6B7280' }}>
             All your transactions
           </p>

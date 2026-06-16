@@ -58,10 +58,8 @@ const Navbar = ({ activeTab, onTabChange }: NavbarProps) => {
     >
       <div
         ref={containerRef}
-        className="relative flex items-center justify-between"
+        className="relative flex items-center justify-between w-full max-w-[420px] md:max-w-[480px]"
         style={{
-          width: "100%",
-          maxWidth: "420px",
           height: "72px",
           paddingLeft: "8px",
           paddingRight: "8px",
